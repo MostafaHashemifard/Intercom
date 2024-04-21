@@ -1,0 +1,28 @@
+#!/bin/sh
+
+gsmModule="$(grep "gsm" /etc/config/boardconfig | cut -d "=" -f 2)"
+
+ch340PortName="$(ls /sys/bus/usb-serial/drivers/ch341-uart/ | grep ttyUSB*)"
+if [[ ! -z "$ch340PortName" ]]
+then
+	ln -s /dev/$ch340PortName /dev/arduinoGW
+fi
+
+sleep 7
+
+screen -S FIFOSERVICE -d -m fifo_service                
+sleep 2
+screen -S SERIALSERVICE -d -m ng_serial_io_service
+
+touch /uid_container
+
+if [[ $gsmModule == "EC25" || $gsmModule == "ZM618" || $gsmModule == "YJ106S" ]]
+then
+	if [[ "$(grep "BROADBAND3" /etc/config/network)" ]]
+	then
+		uci delete network.BROADBAND3
+		uci commit network
+		sleep 1
+		/etc/init.d/network restart
+	fi
+fi

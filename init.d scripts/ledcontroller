@@ -1,0 +1,19 @@
+#!/bin/sh /etc/rc.common
+
+START=100
+STOP=150
+
+start() {
+        echo start
+        gsmModule="$(grep "gsm" /etc/config/boardconfig | cut -d "=" -f 2)"
+        if [[ $gsmModule != "NONE" ]]
+        then
+			rssi_led_ctrlr
+		fi
+        # commands to launch application
+}
+
+stop() {
+        echo stop
+        # commands to kill application
+}

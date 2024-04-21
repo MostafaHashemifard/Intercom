@@ -1,0 +1,17 @@
+#!/bin/sh
+
+echo 1 > /sys/class/gpio/export
+echo out > /sys/class/gpio/gpio1/direction
+
+while true
+do
+	if cat /proc/asound/card0/stream0 | grep -q "Running"; #sound card is active
+	then
+		pgrep curl | xargs kill > /dev/null 
+		echo 1 > /sys/class/gpio/gpio1/value
+	else
+		echo 0 > /sys/class/gpio/gpio1/value
+	fi
+	sleep 1
+done &
+

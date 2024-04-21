@@ -1,0 +1,44 @@
+#!/bin/sh
+
+FILE=/etc/config/volumesettings.ini
+if [[ -z $1 ]]	#startup
+then
+	if [[ -f "$FILE" ]]
+	then
+		headphoneVolume="$(cat $FILE | grep headphoneVolume | cut -d '=' -f 2)"
+		if [[ ! -z "$headphoneVolume" ]]
+		then
+			amixer set Headphone $headphoneVolume%
+			amixer set Speaker $headphoneVolume%
+		fi
+		microphoneVolume="$(cat $FILE | grep microphoneVolume | cut -d '=' -f 2)"
+		if [[ ! -z "$microphoneVolume" ]]
+		then
+			amixer set Mic $microphoneVolume%
+		fi
+		autoGain="$(cat $FILE | grep autoGain | cut -d '=' -f 2)"
+		if [[ ! -z "$autoGain" ]]
+		then
+			amixer set "Auto Gain Control" $autoGain%
+		fi
+		micStatus="$(cat $FILE | grep micStatus | cut -d '=' -f 2)"
+		if [[ ! -z "$autoGain" ]]
+		then
+			amixer set Mic $micStatus
+		fi
+	else
+		cat /dev/null > $FILE
+	fi
+else
+	headphoneVolume=$1
+	microphoneVolume=$2
+	autoGain=$3
+	micStatus=$4
+	cat /dev/null > $FILE
+	echo -e "headphoneVolume=$headphoneVolume\nmicrophoneVolume=$microphoneVolume\nautoGain=$autoGain\nmicStatus=$micStatus" > $FILE
+	amixer set Headphone $headphoneVolume%
+	amixer set Speaker $headphoneVolume%
+	amixer set Mic $microphoneVolume%
+	amixer set "Auto Gain Control" $autoGain%
+	amixer set Mic $micStatus
+fi

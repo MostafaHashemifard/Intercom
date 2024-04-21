@@ -1,0 +1,23 @@
+#!/bin/sh
+
+CONFIG=/etc/config/alarms.ini
+dtmfCode1=$1
+action1=$2
+duration1=$3
+
+dtmfCode2=$4
+action2=$5
+duration2=$6
+
+dtmfCode3=$7
+action3=$8
+duration3=$9
+
+dtmfCode4=$10
+action4=$11
+duration4=$12
+
+dtmfCode5=$13
+action5=$14
+duration5=$15
+echo -e "dtmfCode1=$dtmfCode1\naction1=$action1\nduration1=$duration1\ndtmfCode2=$dtmfCode2\naction2=$action2\nduration2=$duration2\ndtmfCode3=$dtmfCode3\naction3=$action3\nduration3=$duration3\ndtmfCode4=$dtmfCode4\naction4=$action4\nduration4=$duration4\ndtmfCode5=$dtmfCode5\naction5=$action5\nduration5=$duration5" > $CONFIG

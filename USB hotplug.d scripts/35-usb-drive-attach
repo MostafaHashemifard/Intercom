@@ -1,0 +1,22 @@
+#!/bin/sh
+
+MOUNTPOINT=/etc/config/audios
+FLAG="$(ls $MOUNTPOINT)"
+
+if [ "${ACTION}" = "add" ]; 
+then 
+	if [ -z $FLAG ];
+	then                                                     
+		logger -t PERSAVA-HOTPLUG: Mount point not present, created.
+       	mkdir $MOUNTPOINT                                
+	fi     
+	logger -t PERSAVA-HOTPLUG: New USB drive attached
+	sleep 3
+	DEVNAME="$(ls /dev/sda1)"
+	if [ ! -z $DEVNAME ];
+	then
+		logger -t PERSAVA-HOTPLUG: New USB drive mounted
+		mount $DEVNAME $MOUNTPOINT
+	fi
+fi 
+

@@ -1,0 +1,26 @@
+#!/bin/sh
+
+FILE=/etc/config/snapclientsettings.ini
+if [[ -z $1 ]]	#startup
+then
+	if [[ -f "$FILE" ]]
+	then
+		ip="$(cat $FILE | grep ip | cut -d '=' -f 2)"
+		if [[ ! -z "$ip" ]]
+		then
+			screen -S SNAP -d -m  snapclient -h $ip
+		fi
+	else
+		cat /dev/null > $FILE
+	fi
+else
+	speakerName=$1
+	ip=$2
+	cat /dev/null > $FILE
+	echo -e "ip=$ip\nspeaker=$speakerName" > $FILE
+	pgrep snapclient | xargs kill > /dev/null 
+	screen -S SNAP -d -m  snapclient -h $ip
+	uci set system.@system[0].hostname="PersavaSpeaker-$speakerName"
+	uci commit system
+	/etc/init.d/system reload
+fi

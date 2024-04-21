@@ -1,0 +1,46 @@
+#!/bin/sh
+
+FILE=/etc/baresip/accounts
+CONFIG=/etc/config/sipsettings.ini
+BARESIPCONFFILE=/etc/baresip/config
+if [[ -z $1 ]]	#startup
+then
+	if [[ -f "$FILE" ]]
+	then
+		screen -S BARESIP -d -m baresip -f /etc/baresip
+		incoming_call_monitor &
+	else
+		cat /dev/null > $FILE
+	fi
+else
+	username=$1
+	password=$2
+	proxy=$3
+	proxyTransport=$4
+	sipServerIp=$5
+	sipPort=$6
+	transport=$7
+	autoAnswer=$8
+	netInterface=$9
+
+	sed -i "/net_interface/c\net_interface $netInterface" $BARESIPCONFFILE
+	cat /dev/null > $FILE
+	echo -e "username=$username\npassword=$password\nproxy=$proxy\nproxyTransport=$proxyTransport\nsipServerIp=$sipServerIp\nsipPort=$sipPort\ntransport=$transport\nautoAnswer=$autoAnswer\nnetInterface=$netInterface" > $CONFIG
+	if [[ -z $proxy ]] || [[ -z $proxyTransport ]]
+	then
+		echo "<sip:$username@$sipServerIp:$sipPort;transport=$transport>;auth_pass=$password;answermode=$autoAnswer" > $FILE
+	else
+		echo "<sip:$username@$sipServerIp:$sipPort;transport=$transport>;auth_pass=$password;sipnat=outbound;outbound=\"sip:$proxy;transport=$proxyTransport\";answermode=$autoAnswer" > $FILE
+	fi
+	while true
+	do
+		baresipPid="$(pgrep baresip | head -n 1)"
+		if [[ -z "$baresipPid" ]]
+		then
+			break
+		fi
+		kill $baresipPid > /dev/null 2>&1
+	done
+	screen -S BARESIP -d -m baresip -f /etc/baresip
+	incoming_call_monitor &
+fi

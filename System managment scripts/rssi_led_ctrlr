@@ -1,0 +1,64 @@
+#!/bin/sh
+
+flag="true"
+moduleStatus=0
+gsmModule="$(grep 'gsm' /etc/config/boardconfig | cut -d "=" -f 2)"
+
+while true
+do
+	if ! grep -q "Running" /proc/asound/card0/stream0; #sound card is not active
+	then
+		if [[ $gsmModule == "EC25" ]]
+		then
+			dev=/dev/ttyUSB2
+			moduleType=25
+		elif [[ $gsmModule == "ZM618" ]] #ZM618
+		then
+			dev=/dev/ttyACM1
+			moduleType=618
+		elif [[ $gsmModule == "YJ106S" ]] #YJ106S
+		then
+			dev=/dev/ttyACM0
+			moduleType=106
+			if [[ $moduleStatus -eq 1 ]]
+			then
+				moduleStatus=1
+			else
+				serial_connect $dev AT+CFUN=1
+				sleep 10
+				moduleStatus="$(serial_connect $dev AT+CFUN?)"
+			fi
+		elif [[ $gsmModule == "LG717" ]] #LG717
+		then
+			dev="lg717"
+			moduleType=717
+		fi
+		
+		if [[ $moduleType -ne 717 ]]
+		then
+			serial_connect $dev AT
+			rssi="$(serial_connect $dev AT+CSQ | cut -d ':' -f 2 | cut -d ',' -f 1)"
+		else
+			curl -X POST http://192.168.0.1/action/login -H 'cache-control: no-cache' -H 'content-type: application/x-www-form-urlencoded' -c cookie.txt -H 'postman-token: 4b6cb08a-bfdf-2bee-c5c3-311ce797b606' -d 'username=admin&password=E%2Fedd9Ed6wWyorJNglehDAhzF4ZAtlH9DAsgCm6QRBS4dc2khbhzprZREFV6AJWnSQ9UxJgvuwLCKrKKJgn81v6gMAmQrXOELI6B78ABXWuOaByCKHB5Ff9%2F1DgNc34sTyuR8xO0z4R8WNuKYn1IzbbW2N5hqHs5%2BR41mIWIpck%3D'
+			rssi="$(curl -X GET 'http://192.168.0.1/_request.xml?cmd=OAM_MIDWARE_NODE_GET&node=3BN_8_27' -H 'cache-control: no-cache' -b cookie.txt -H 'postman-token: b4df472b-e517-33a4-08f9-d45b17083d0c' 2>&1 | grep 8_27 | cut -d '[' -f 3 | cut -d ']' -f 1)"
+			rssi="$((rssi+83))"
+			lg717_sim_status="$(curl -X GET 'http://192.168.0.1/_request.xml?cmd=OAM_MIDWARE_NODE_GET&node=3BN_8_46' -H 'cache-control: no-cache' -b cookie.txt -H 'postman-token: b4df472b-e517-33a4-08f9-d45b17083d0c' 2>&1 | grep 8_46 | cut -d '[' -f 3 | cut -d ']' -f 1)"
+			echo $lg717_sim_status >> /tr.log
+		fi
+
+		if serial_connect $dev AT+CPIN? | grep -q "READY" || [ $lg717_sim_status == "connected" ];
+		then
+			if grep -q "NOSIM" /etc/cellularinfo.ini
+			then
+				cellularinfo_ini_feeder $dev $flag $rssi
+			fi
+		fi
+
+		cellularinfo_ini_feeder $dev $flag $rssi
+		flag="false"
+		
+		sleep 10
+	fi
+	sleep 1
+done &
+

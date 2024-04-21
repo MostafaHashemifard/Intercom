@@ -1,0 +1,21 @@
+#!/bin/sh
+
+CONFIG=/etc/config/equalizer.ini
+val31=$1
+val62=$2
+val125=$3
+val250=$4
+val500=$5
+val1K=$6
+val2K=$7
+val4K=$8
+val8K=$9
+val16K=$10
+echo -e "val31=$val31\nval62=$val62\nval125=$val125\nval250=$val250\nval500=$val500\nval1K=$val1K\nval2K=$val2K\nval4K=$val4K\nval8K=$val8K\nval16K=$val16K" > $CONFIG
+sleep 1
+SERIALSERVICE="$(pgrep ng_serial_io_service)"
+
+if [[ ! -z $SERIALSERVICE ]]
+then
+	kill -s USR2 $SERIALSERVICE
+fi

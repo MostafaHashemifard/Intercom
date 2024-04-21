@@ -1,0 +1,57 @@
+#!/bin/sh
+
+action=$4
+volume=$3
+repeat=$2
+address=/etc/config/audios/$1
+
+pgrep madplay | xargs kill > /dev/null 2>&1
+sleep 1
+killall curl
+
+if [[ $action == "stop" ]]
+then
+	screenName="$(screen -ls | grep PLAYERSERVICE)"
+	if [[ ! -z $screenName ]]
+	then
+		screen -S PLAYERSERVICE -p 0 -X stuff "^c"
+	fi
+	exit
+fi
+
+pid="$(pgrep snapclient)"
+
+if [[ ! -z "$pid" ]]
+then
+	kill $pid
+fi
+sleep 1
+
+if [[ $action == "play" ]]
+then
+	if [[ $volume -le 0 ]]
+	then
+		volume=-100
+	elif [[ $volume -le 100 ]]
+	then
+		volume="$(($3-90))"
+	else
+		volume=0
+	fi
+	if [[ $repeat == "no" ]]
+	then
+		echo "no"
+		echo --adjust-volume=$volume $address  > /root/testsoori
+		screen -S PLAYERSERVICE -d -m /usr/bin/madplay  $address  -A $volume
+	elif [[ $repeat == "yes" ]] 
+	then
+		echo "yess"
+		screen -S PLAYERSERVICE -d -m /usr/bin/madplay  $address  -A $volume --repeat=20000 
+	else 
+		echo $repeat
+		screen -S PLAYERSERVICE -d -m /usr/bin/madplay  $address  -A $volume --repeat=$repeat
+	fi
+	
+	sleep 1
+	runsnapclient_manager &
+fi

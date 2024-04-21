@@ -1,0 +1,39 @@
+#!/bin/sh
+
+what=$1
+dtmf=$2
+
+if [[ "$what" == "alarm" ]]
+then
+	FILE=/etc/config/alarms.ini
+	if [[ -f "$FILE" ]];
+	then
+		number="$(grep -w $dtmf $FILE | cut -d '=' -f 1)"
+		if [[ "$number" == "dtmfCode1" ]]
+		then
+			action="$(grep -w action1 $FILE | cut -d '=' -f 2)"
+			duration="$(grep -w duration1 $FILE | cut -d '=' -f 2)"
+		elif [[ "$number" == "dtmfCode2" ]]
+		then
+			action="$(grep -w action2 $FILE | cut -d '=' -f 2)"
+			duration="$(grep -w duration2 $FILE | cut -d '=' -f 2)"
+		elif [[ "$number" == "dtmfCode3" ]]
+		then
+			action="$(grep -w action3 $FILE | cut -d '=' -f 2)"
+			duration="$(grep -w duration3 $FILE | cut -d '=' -f 2)"
+		fi
+	else
+		echo "File does not exists"
+	fi
+elif [[ "$what" == "player" ]]
+then
+	FILE=/etc/config/player.ini
+	if [[ -f "$FILE" ]];
+	then
+		echo "File exists"
+	else
+		echo "File does not exists"
+	fi
+fi
+
+echo ${action:0:1}-$duration

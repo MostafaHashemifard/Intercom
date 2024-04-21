@@ -1,0 +1,12 @@
+#!/bin/sh
+
+while true
+do
+	SERIALSERVICE="$(pgrep ng_serial_io_service)"
+	INCOMINGCALL="$(echo l | nc 127.0.0.1 5555 | grep INCOMING)"
+	if [[ ! -z $SERIALSERVICE && ! -z "$INCOMINGCALL" ]]
+	then
+		kill -s USR1 $SERIALSERVICE
+	fi
+sleep 2
+done
