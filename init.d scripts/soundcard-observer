@@ -1,0 +1,15 @@
+#!/bin/sh /etc/rc.common
+
+START=110
+STOP=160
+
+start() {
+        echo start
+	soundcard_observer
+        # commands to launch application
+}
+
+stop() {
+        echo stop
+        # commands to kill application
+}

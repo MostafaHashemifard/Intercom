@@ -1,0 +1,135 @@
+#!/bin/sh
+
+cnt=1
+flag=0
+SHAIRPORT_CONFIG=/etc/config/shairportsettings.ini
+
+while true
+do
+	sisPid="$(pgrep ng_serial_io_service)"
+	fisPid="$(pgrep fifo_service)"
+	shairportPid="$(pgrep shairport)"
+	shairportAction="$(cat $SHAIRPORT_CONFIG | grep action | cut -d '=' -f 2)"
+	sipSip="$(cat /etc/config/sipsettings.ini | grep sipServerIp | cut -d '=' -f 2)"
+	if [[ -z $shairportPid ]]
+	then
+		if [[ $shairportAction == "enable" ]]
+		then
+			logger -t PERSAVA-FAILOVER -s "Shairport service is enabled but not running, starting service." > /dev/null 2>&1
+			screen -S SHAIRPORT -d -m shairport-sync -v > /dev/null 2>&1
+		fi
+	fi
+	if [[ -z "$sisPid" ]] || [[ -z "$fisPid" ]]
+	then
+		if [[ -z "$sisPid" ]]
+		then
+			logger -t PERSAVA-FAILOVER -s "ng_serial_io_service failed!" > /dev/null 2>&1
+		else
+			logger -t PERSAVA-FAILOVER -s "fifo_service failed!" > /dev/null 2>&1
+		fi
+		logger -t PERSAVA-FAILOVER -s "Restarting fifo_service and ng_serial_io_service." > /dev/null 2>&1
+		screen -XS SERIALSERVICE quit > /dev/null 2>&1
+		screen -XS FIFOSERVICE quit > /dev/null 2>&1
+		
+		
+		sleep 2
+		screen -S FIFOSERVICE -d -m fifo_service
+		sleep 1
+		screen -S SERIALSERVICE -d -m ng_serial_io_service
+		sleep 1
+		screen -XS SERIALSERVICE quit > /dev/null 2>&1
+		screen -XS FIFOSERVICE quit > /dev/null 2>&1
+		
+		
+		sleep 2
+		screen -S FIFOSERVICE -d -m fifo_service
+		sleep 1
+		screen -S SERIALSERVICE -d -m ng_serial_io_service
+	fi
+	#sipStat="$(echo r | nc 127.0.0.1 5555 | grep sip | grep OK)"
+	sipStat="$(sip_reg_stat | grep OK)"
+	if [[ -z $sipSip ]]
+	then
+		logger -t PERSAVA-FAILOVER -s "Trying to get SIP server IP. No config found!" > /dev/null 2>&1
+	else
+		conStat="$(ping -c1 $sipSip > /dev/null && echo UP)"
+	fi
+	if [[ -z "$sipStat" ]]
+	then
+		if [[ -z "$conStat" ]]
+		then
+			logger -t PERSAVA-FAILOVER -s "SIP Server is DOWN . Waiting for back. " > /dev/null 2>&1
+			cnt=1
+		else
+			secs=$((cnt*10))
+			logger -t PERSAVA-FAILOVER -s "baresip failure. Waiting for registration. $secs seconds" > /dev/null 2>&1
+			cnt=$((cnt+1))
+		fi
+		
+		logger -t PERSAVA-FAILOVER -s "Possibility of baresip failure." > /dev/null 2>&1
+		if [[ $cnt -eq 9 ]]
+		then
+			logger -t PERSAVA-FAILOVER -s "Detected baresip failure. First killing FIFO and Serial services." > /dev/null 2>&1
+			screen -XS SERIALSERVICE quit > /dev/null 2>&1
+			screen -XS FIFOSERVICE quit > /dev/null 2>&1
+			logger -t PERSAVA-FAILOVER -s "Restarting baresip service." > /dev/null 2>&1
+			screen -XS BARESIP quit > /dev/null 2>&1
+			sleep 2
+			baresip_manager
+			sleep 1
+			logger -t PERSAVA-FAILOVER -s "Starting FIFO and Serial services." > /dev/null 2>&1
+			screen -S FIFOSERVICE -d -m fifo_service
+			sleep 1
+			screen -S SERIALSERVICE -d -m ng_serial_io_service
+			sleep 3
+			screen -XS SERIALSERVICE quit > /dev/null 2>&1
+			screen -XS FIFOSERVICE quit > /dev/null 2>&1
+			logger -t PERSAVA-FAILOVER -s "Restarting baresip service." > /dev/null 2>&1
+			screen -XS BARESIP quit > /dev/null 2>&1
+			sleep 2
+			baresip_manager
+			sleep 1
+			logger -t PERSAVA-FAILOVER -s "Starting FIFO and Serial services." > /dev/null 2>&1
+			screen -S FIFOSERVICE -d -m fifo_service
+			sleep 1
+			screen -S SERIALSERVICE -d -m ng_serial_io_service	
+			cnt=1
+		fi
+		
+	else
+		cnt=1
+		if [[ -z "$conStat" ]]
+		then
+			logger -t PERSAVA-FAILOVER -s "SIP server connection failure." > /dev/null 2>&1
+			flag=1
+		elif [[ $flag -eq 1 ]]
+		then
+			logger -t PERSAVA-FAILOVER -s "SIP server connection is active. First killing FIFO and Serial services." > /dev/null 2>&1
+			screen -XS SERIALSERVICE quit > /dev/null 2>&1
+			screen -XS FIFOSERVICE quit > /dev/null 2>&1
+			logger -t PERSAVA-FAILOVER -s "Restarting baresip service." > /dev/null 2>&1
+			screen -XS BARESIP quit > /dev/null 2>&1
+			sleep 2
+			baresip_manager
+			sleep 1
+			logger -t PERSAVA-FAILOVER -s "Starting FIFO and Serial services." > /dev/null 2>&1
+			screen -S FIFOSERVICE -d -m fifo_service
+			sleep 1
+			screen -S SERIALSERVICE -d -m ng_serial_io_service
+			sleep 3
+			screen -XS SERIALSERVICE quit > /dev/null 2>&1
+			screen -XS FIFOSERVICE quit > /dev/null 2>&1
+			logger -t PERSAVA-FAILOVER -s "Restarting baresip service." > /dev/null 2>&1
+			screen -XS BARESIP quit > /dev/null 2>&1
+			sleep 2
+			baresip_manager
+			sleep 1
+			logger -t PERSAVA-FAILOVER -s "Starting FIFO and Serial services." > /dev/null 2>&1
+			screen -S FIFOSERVICE -d -m fifo_service
+			sleep 1
+			screen -S SERIALSERVICE -d -m ng_serial_io_service		
+			flag=0
+		fi
+	fi
+	sleep 10
+done

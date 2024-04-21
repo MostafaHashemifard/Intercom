@@ -1,0 +1,4 @@
+#!/bin/sh
+
+FILE=/etc/config/zonessettings.ini
+echo "${1}" | tr - '\n' > $FILE

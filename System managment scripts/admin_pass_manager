@@ -1,0 +1,25 @@
+#!/bin/sh
+
+pass=$(openssl passwd -1 $1)
+file="/etc/config/rpcd"
+tmpFile="/etc/config/rpcd.tmp"
+
+echo "" > $tmpFile
+
+while IFS= read -r line
+do
+        if echo "$line" | grep -q "password"
+        then
+                echo "option password '$pass' " >> $tmpFile
+        else
+                echo $line >> $tmpFile
+        fi
+done < "$file"
+
+(echo $1; sleep 1; echo $1) | passwd root >/dev/null 2>&1
+
+echo $1 > /etc/config/admin_pass
+
+mv $tmpFile $file
+/etc/init.d/rpcd restart
+

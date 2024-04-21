@@ -1,0 +1,11 @@
+#!/bin/sh
+
+while true
+do
+	if ! grep -q "Running" /proc/asound/card0/stream0;
+	then
+		sleep 1
+		snapclient_manager
+		break;
+	fi
+done

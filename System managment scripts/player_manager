@@ -1,0 +1,21 @@
+#!/bin/sh
+
+CONFIG=/etc/config/player.ini
+dtmfCode1=$1
+file1=$2
+repeat1=$3
+volume1=$4
+
+dtmfCode2=$5
+file2=$6
+repeat2=$7
+volume2=$8
+
+dtmfCode3=$9
+file3=$10
+repeat3=$11
+volume3=$12
+
+stopCode=$13
+
+echo -e "dtmfCode1=$dtmfCode1\nfileName1=$file1\nrepeat1=$repeat1\nvolume1=$volume1\ndtmfCode2=$dtmfCode2\nfileName2=$file2\nrepeat2=$repeat2\nvolume2=$volume2\ndtmfCode3=$dtmfCode3\nfileName3=$file3\nrepeat3=$repeat3\nvolume3=$volume3\nstopCode=$stopCode" > $CONFIG

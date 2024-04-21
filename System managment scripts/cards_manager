@@ -1,0 +1,4 @@
+#!/bin/sh
+
+FILE=/etc/config/cards.ini
+echo "${1}${2}" | tr - '\n' > $FILE

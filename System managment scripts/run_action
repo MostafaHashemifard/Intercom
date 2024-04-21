@@ -1,0 +1,78 @@
+#!/bin/sh
+
+action=$1
+value=$2
+codingFile=/etc/config/codingsettings.ini
+SERVICE="baresip"
+
+if [[ $action == "answer" ]]
+then
+	echo a | nc 127.0.0.1 5555
+fi
+
+if [[ $action == "dial" ]]
+then
+	if [[ -f $codingFile && -s $codingFile ]]
+	then
+		ext="$(cat $codingFile | grep -w $value | cut -d '=' -f 2)"
+		if [[ -z "$ext" ]]
+		then
+			ext=$value
+		fi
+		if pgrep -x "$SERVICE" > /dev/null
+		then
+			pgrep madplay | xargs kill > /dev/null 2>&1
+			screen -S BARESIP -X stuff "/dial $ext^M"
+		fi
+	fi
+fi
+
+if [[ $action == "hangup" ]]
+then
+	if pgrep -x "$SERVICE" > /dev/null
+	then
+		screen -S BARESIP -X stuff "/hangup ^M"
+	fi
+fi
+
+if [[ $action == "mic" ]]
+then
+	FILE=/etc/config/volumesettings.ini
+	if [[ -f $FILE && -s $FILE ]]
+	then
+		headphoneVolume="$(cat $FILE | grep headphoneVolume | cut -d '=' -f 2)"
+		microphoneVolume="$(cat $FILE | grep microphoneVolume | cut -d '=' -f 2)"
+		autoGain="$(cat $FILE | grep autoGain | cut -d '=' -f 2)"
+		micStatus="$(cat $FILE | grep micStatus | cut -d '=' -f 2)"
+	fi
+	if [[ $value == "+" ]]
+	then
+		newMicVolume=$(($microphoneVolume + 5))
+		if [[ $newMicVolume -gt 100 ]]
+		then
+			newMicVolume=100
+		fi
+	elif [[ $value == "-" ]]
+	then
+		newMicVolume=$(($microphoneVolume - 5))
+		if [[ $newMicVolume -lt 0 ]]
+		then
+			newMicVolume=0
+		fi
+	fi
+	volume_manager $headphoneVolume $newMicVolume $autoGain $micStatus
+fi
+
+if [[ $action == "vol" ]]
+then
+	FILE=/etc/config/volumesettings.ini
+	if [[ -f $FILE && -s $FILE ]]
+	then
+		headphoneVolume="$(cat $FILE | grep headphoneVolume | cut -d '=' -f 2)"
+		microphoneVolume="$(cat $FILE | grep microphoneVolume | cut -d '=' -f 2)"
+		autoGain="$(cat $FILE | grep autoGain | cut -d '=' -f 2)"
+		micStatus="$(cat $FILE | grep micStatus | cut -d '=' -f 2)"
+	fi
+	newHeadphoneVolume=$value
+	volume_manager $newHeadphoneVolume $microphoneVolume $autoGain $micStatus
+fi

@@ -1,0 +1,28 @@
+#!/bin/sh
+
+echo 3 > /sys/class/gpio/export
+
+while true
+do
+	btnStat="$(cat /sys/class/gpio/gpio3/value)"
+	if [[ $btnStat -eq 0 ]]
+	then
+		start=$(date +%s)
+		while true
+		do
+			btnStat="$(cat /sys/class/gpio/gpio3/value)"
+			if [[ $btnStat == 1 ]]
+			then
+				break
+			fi
+			end=$(date +%s)
+			duration=$(( end - start ))
+			if [[ $duration -ge 5 ]]
+			then
+				/sbin/jffs2reset -y -r
+			fi
+		done
+	fi
+	sleep 1
+done
+

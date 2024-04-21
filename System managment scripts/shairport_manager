@@ -1,0 +1,54 @@
+#!/bin/sh
+
+FILE=/etc/shairport-sync.conf
+CONFIG=/etc/config/shairportsettings.ini
+if [[ -z $1 ]]	#startup
+then
+	if [[ -f "$CONFIG" ]]
+	then
+		action="$(cat $CONFIG | grep action | cut -d '=' -f 2)"
+		if [[ $action == "enable" ]]
+		then
+			screen -S SHAIRPORT -d -m shairport-sync -v > /dev/null 2>&1
+		fi
+	fi
+else
+	pid="$(pgrep shairport)"
+	action=$1
+	password=$2
+	interface=$3
+	##
+	if [[ ! -z $password ]]
+	then
+		sed -i "/password/c\password = \"$password\"" $FILE
+	else
+		sed -i '/password/c\//password' $FILE
+	fi
+	##
+	if [[ $interface == "WAN" ]]
+	then
+		sed -i '/interface =/c\interface = "eth0.2"' $FILE
+	elif [[ $interface == "WiFi" ]]
+	then
+		sed -i '/interface =/c\interface = "br-lan"' $FILE
+	else
+		sed -i '/interface =/c\//interface' $FILE
+	fi
+	##
+	if [[ $action == "enable" ]]
+	then
+		echo -e "action=enable\npassword=$password\ninterface=$interface" > $CONFIG
+		if [[ -z "$pid" ]]
+		then
+			screen -S SHAIRPORT -d -m shairport-sync -v > /dev/null 2>&1
+		fi
+	elif [[ $action == "disable" ]]
+	then
+		echo -e "action=disable\npassword=$password\ninterface=$interface" > $CONFIG
+		if [[ ! -z "$pid" ]]
+		then
+			screen -XS SHAIRPORT quit > /dev/null 2>&1
+			kill $pid > /dev/null 2>&1
+		fi
+	fi
+fi

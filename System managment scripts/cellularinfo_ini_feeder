@@ -1,0 +1,393 @@
+#!/bin/sh
+dev=$1
+isFirstTime=$2
+rssi=$3
+
+if [[ $isFirstTime == "true" ]]
+then
+	cat /dev/null > /etc/cellularinfo.ini
+fi
+
+if [[ $1 == "lg717" ]]
+then
+	ifconfig >> /sm.log
+	curl -X POST http://192.168.0.1/action/login -H 'cache-control: no-cache' -H 'content-type: application/x-www-form-urlencoded' -c cookie.txt -H 'postman-token: 4b6cb08a-bfdf-2bee-c5c3-311ce797b606' -d 'username=admin&password=E%2Fedd9Ed6wWyorJNglehDAhzF4ZAtlH9DAsgCm6QRBS4dc2khbhzprZREFV6AJWnSQ9UxJgvuwLCKrKKJgn81v6gMAmQrXOELI6B78ABXWuOaByCKHB5Ff9%2F1DgNc34sTyuR8xO0z4R8WNuKYn1IzbbW2N5hqHs5%2BR41mIWIpck%3D' >> /sm.log 2>&1 #/dev/null 2>&1
+	
+	lg717_sim_status="$(curl -X GET 'http://192.168.0.1/_request.xml?cmd=OAM_MIDWARE_NODE_GET&node=3BN_8_46' -H 'cache-control: no-cache' -b cookie.txt -H 'postman-token: b4df472b-e517-33a4-08f9-d45b17083d0c' 2>&1 | grep 8_46 | cut -d '[' -f 3 | cut -d ']' -f 1)"
+	if [[ $lg717_sim_status == "connected" ]]
+	then
+		#### IMEI ####
+		imeiOld="$(cat /etc/cellularinfo.ini | grep imei | cut -d '=' -f 2)"
+		if [[ -z "$imeiOld" ]]
+		then
+			imeiOld="NA"
+		fi
+		if [[ "$imeiOld" == "NA" ]] || [[ $isFirstTime == "true" ]] || [[ "$imeiOld" == "NOSIM" ]]
+		then
+			imei="$(curl -X GET 'http://192.168.0.1/_request.xml?cmd=OAM_MIDWARE_NODE_GET&node=3BN_8_42&token=344c1306-32ef-4bad-85d0-fedee5495d79' -H 'cache-control: no-cache' -b cookie.txt -H 'postman-token: cee82210-eccc-beac-dd08-815c378ad839' 2>&1 | grep 8_42 | cut -d '[' -f 3 | cut -d ']' -f 1)"
+		else
+			imei=$imeiOld
+		fi
+		#### IMEI END ####		
+		
+		#### IMSI ####
+		imsiOld="$(cat /etc/cellularinfo.ini | grep imsi | cut -d '=' -f 2)"
+		if [[ -z "$imsiOld" ]]
+		then
+			imsiOld="NA"
+		fi
+		if [[ "$imsiOld" == "NA" ]] || [[ $isFirstTime == "true" ]] || [[ "$imsiOld" == "NOSIM" ]]
+		then		
+			imsi="$(curl -X GET 'http://192.168.0.1/_request.xml?cmd=OAM_MIDWARE_NODE_GET&node=3BN_8_41&token=344c1306-32ef-4bad-85d0-fedee5495d79' -H 'cache-control: no-cache' -b cookie.txt -H 'postman-token: cee82210-eccc-beac-dd08-815c378ad839' 2>&1 | grep 8_41 | cut -d '[' -f 3 | cut -d ']' -f 1)"
+		else
+			imsi=$imsiOld
+		fi
+		#### IMSI END ####
+		
+		#### OPRN ####
+		oprnOld="$(cat /etc/cellularinfo.ini | grep oprn | cut -d '=' -f 2)"
+		if [[ -z "$oprnOld" ]]
+		then
+			oprnOld="NA"
+		fi
+		if [[ "$oprnOld" == "NA" ]] || [[ $isFirstTime == "true" ]] || [[ "$oprnOld" == "NOSIM" ]]
+		then		
+			oprn="$(curl -X GET 'http://192.168.0.1/_request.xml?cmd=OAM_MIDWARE_NODE_GET&node=3BN_8_48' -H 'cache-control: no-cache' -b cookie.txt -H 'postman-token: b4df472b-e517-33a4-08f9-d45b17083d0c' 2>&1 | grep 8_48 | cut -d '[' -f 3 | cut -d ']' -f 1)"
+		else
+			oprn=$oprnOld
+		fi
+		#### OPRN END ####
+						
+		tech="$(curl -X GET 'http://192.168.0.1/_request.xml?cmd=OAM_MIDWARE_NODE_GET&node=3BN_5_57&token=344c1306-32ef-4bad-85d0-fedee5495d79' -H 'cache-control: no-cache' -b cookie.txt -H 'postman-token: cee82210-eccc-beac-dd08-815c378ad839' 2>&1 | grep 5_57 | cut -d '[' -f 3 | cut -d ']' -f 1)"
+		band="$(curl -X GET 'http://192.168.0.1/_request.xml?cmd=OAM_MIDWARE_NODE_GET&node=3BN_8_45' -H 'cache-control: no-cache' -b cookie.txt -H 'postman-token: b4df472b-e517-33a4-08f9-d45b17083d0c' 2>&1 | grep 8_45 | cut -d '[' -f 3 | cut -d ']' -f 1)"
+
+		btsn="$(curl -X GET 'http://192.168.0.1/_request.xml?cmd=OAM_MIDWARE_NODE_GET&node=N_8_13;&token=344c1306-32ef-4bad-85d0-fedee5495d79' -H 'cache-control: no-cache' -b cookie.txt -H 'postman-token: cee82210-eccc-beac-dd08-815c378ad839' 2>&1 | grep 8_13 | cut -d '[' -f 3 | cut -d ']' -f 1)"
+		####
+		if [[ -z "$imei" || ${#imei} -eq 0 || ! "$(echo $imei | grep -E "^[0-9]{1,}$")" ]]
+		then
+			imei="NA"
+		fi
+		if [[ -z "$imsi" || ${#imsi} -eq 0 || ! "$(echo $imsi | grep -E "^[0-9]{1,}$")" ]]
+		then
+			imsi="NA"
+		fi
+		if [[ -z "$band" || ${#band} -eq 0 ]]
+		then
+			band="NA"
+		fi
+		if [[ -z "$tech" || ${#tech} -eq 0 ]]
+		then
+			tech="NA"
+		fi
+		if [[ -z "$btsn" || ${#btsn} -eq 0 ]]
+		then
+			btsn="NA"
+		else
+			if [ $btsn -eq 08 ]
+			then
+				btsn="Shatel Mobile"
+			elif [ $btsn -eq 50 ]
+			then
+				btsn="Shatel Mobile"
+			elif [ $btsn -eq 11 ]
+			then
+				btsn="IR-TCI"
+			elif [ $btsn -eq 20 ]
+			then
+				btsn="RighTel"
+			elif [ $btsn -eq 21 ]
+			then
+				btsn="RighTel"
+			elif [ $btsn -eq 35 ]
+			then
+				btsn="MTN Irancell"
+			elif [ $oprnCode -eq 40 ]
+			then
+				btsn="Mobinnet"
+			else
+				btsn="Not Supported"
+			fi
+		fi
+		if [[ -z "$oprn" || ${#oprn} -eq 0 ]]
+		then
+			oprn="NA"
+		fi
+	else
+		imei="NOSIM"
+		imsi="NOSIM"
+		btsn="NOSIM"
+		oprn="NOSIM"
+		band="NOSIM"
+		tech="NOSIM"
+	fi
+else
+	#### IMEI ####
+	imeiOld="$(cat /etc/cellularinfo.ini | grep imei | cut -d '=' -f 2)"
+	if [[ -z "$imeiOld" ]]
+	then
+		imeiOld="NA"
+	fi
+	if [[ "$imeiOld" == "NA" ]] || [[ $isFirstTime == "true" ]] || [[ "$imeiOld" == "NOSIM" ]]
+	then
+		imei="$(serial_connect $dev AT+CGSN)"
+	else
+		imei=$imeiOld
+	fi
+	#### IMEI END ####
+	
+	#### IMSI ####
+	imsiOld="$(cat /etc/cellularinfo.ini | grep imsi | cut -d '=' -f 2)"
+	if [[ -z "$imsiOld" ]]
+	then
+		imsiOld="NA"
+	fi
+	if [[ "$imsiOld" == "NA" ]] || [[ $isFirstTime == "true" ]] || [[ "$imsiOld" == "NOSIM" ]]
+	then
+		imsi="$(serial_connect $dev AT+CIMI)"
+		if [[ ${#imsi} -ne 15 ]]
+		then
+			imsi="$(serial_connect $dev AT+CIMI)"
+		fi
+		if [[ ${#imsi} -ne 15 ]]
+		then
+			imsi="$(serial_connect $dev AT+CIMI)"
+		fi
+	else
+		imsi=$imsiOld
+	fi
+	#### IMSI END ####
+	
+	btsn="$(serial_connect $dev AT+COPS? | cut -d '"' -f 2)"
+	
+	if [ $btsn -eq 43208 ]
+	then
+		btsn="Shatel Mobile"
+	elif [ $btsn -eq 43250 ]
+	then
+		btsn="Shatel Mobile"
+	elif [ $btsn -eq 43211 ]
+	then
+		btsn="IR-TCI"
+	elif [ $btsn -eq 43220 ]
+	then
+		btsn="RighTel"
+	elif [ $btsn -eq 43221 ]
+	then
+		btsn="RighTel"
+	elif [ $btsn -eq 43235 ]
+	then
+		btsn="MTN Irancell"
+	elif [ $btsn -eq 43240 ]
+	then
+		btsn="Mobinnet"
+	elif [ $btsn -eq 43244 ]
+	then
+		btsn="Mobinnet"
+	else
+		btsn="Not Supported"
+	fi
+
+	if [[ $dev == "/dev/ttyUSB2" ]] #ls $dev | grep -q "USB"; #EC25
+	then
+		band="$(serial_connect /dev/ttyUSB2 AT+QNWINFO | cut -d ',' -f 3 | tr -d '"')"
+		tech="$(serial_connect /dev/ttyUSB2 AT+QNWINFO | cut -d ',' -f 1 | tr -d '"')"
+	elif [[ $dev == "/dev/ttyACM1" ]] #ls $dev | grep -q "ACM"; #ZM618
+	then
+		band="$(serial_connect /dev/ttyACM1 AT*BANDIND? | cut -d ',' -f2)"
+		tech="$(serial_connect /dev/ttyACM1 AT*BANDIND? | cut -d ',' -f3)"
+		
+		if [[ $tech -eq 0 || $tech -eq 1 || $tech -eq 3 ]]
+		then
+			if [[ $band -eq 0 ]]
+			then
+				band="PGSM 900"
+			elif [[ $band -eq 1 ]]
+			then
+				band="DCS_BAND"
+			elif [[ $band -eq 2 ]]
+			then
+				band="PCS_BAND"
+			elif [[ $band -eq 3 ]]
+			then
+				band="EGSM_BAND"
+			elif [[ $band -eq 4 ]]
+			then
+				band="GSM_450_BAND"
+			elif [[ $band -eq 5 ]]
+			then
+				band="GSM_480_BAND"
+			elif [[ $band -eq 6 ]]
+			then
+				band="GSM_850_BAND"
+			fi
+		elif [[ $tech -eq 7 ]]
+		then
+			band="BAND$band"
+		else
+			band="BAND$((band-1))"
+		fi
+		
+		if [[ $tech -eq 0 ]]
+		then
+			tech="GSM"
+		elif [[ $tech -eq 1 ]]
+		then
+			tech="GSM Compact"
+		elif [[ $tech -eq 2 ]]
+		then
+			tech="UTRAN"
+		elif [[ $tech -eq 3 ]]
+		then
+			tech="GSM EGPRS"
+		elif [[ $tech -eq 4 ]]
+		then
+			tech="HSPDA"
+		elif [[ $tech -eq 5 ]]
+		then
+			tech="HSPUA"
+		elif [[ $tech -eq 6 ]]
+		then
+			tech="HSPA"
+		elif [[ $tech -eq 7 ]]
+		then
+			tech="LTE"
+		elif [[ $tech -eq 8 ]]
+		then
+			tech="HSPA+"
+		fi
+	elif [[ $dev == "/dev/ttyACM0" ]]
+	then
+		tech="LTE"
+		band="$(serial_connect /dev/ttyACM0 AT+SQNQRCCI? | cut -d ',' -f11)"
+		band="BAND$band"
+	fi
+
+	if serial_connect $dev AT+CPIN? | grep -q "READY";
+	then
+		if [[ -z "$band" || ${#band} -eq 0 ]]
+		then
+			band="NA"
+		fi
+		if [[ -z "$tech" || ${#tech} -eq 0 ]]
+		then
+			tech="NA"
+		fi
+		if [[ -z "$btsn" || ${#btsn} -eq 0 ]]
+		then
+			btsn="NA"
+		fi
+		if [[ -z "$imei" || ${#imei} -eq 0 || ! "$(echo $imei | grep -E "^[0-9]{1,}$")" ]]
+		then
+			imei="NA"
+		fi
+		if [[ -z "$imsi" || ${#imsi} -eq 0 || ! "$(echo $imsi | grep -E "^[0-9]{1,}$")" ]]
+		then
+			imsi="NA"
+			oprn="NA"
+		else
+			oprnCode="$(echo $imsi | cut -c1-5)"
+			if [ $oprnCode -eq 43208 ]
+			then
+				oprn="Shatel Mobile"
+			elif [ $oprnCode -eq 43250 ]
+			then
+				oprn="Shatel Mobile"
+			elif [ $oprnCode -eq 43211 ]
+			then
+				oprn="IR-TCI"
+			elif [ $oprnCode -eq 43220 ]
+			then
+				oprn="RighTel"
+			elif [ $oprnCode -eq 43221 ]
+			then
+				oprn="RighTel"
+			elif [ $oprnCode -eq 43235 ]
+			then
+				oprn="MTN Irancell"
+			elif [ $oprnCode -eq 43240 ]
+			then
+				oprn="Mobinnet"
+			elif [ $oprnCode -eq 43244 ]
+			then
+				oprn="Mobinnet"
+			else
+				#btsn="Not Supported"
+				oprn="Not Supported"
+			fi
+		fi
+	else
+		imei="NOSIM"
+		imsi="NOSIM"
+		btsn="NOSIM"
+		oprn="NOSIM"
+		band="NOSIM"
+		tech="NOSIM"
+	fi
+fi
+if [[ $isFirstTime == "true" ]]
+then
+	if ! lsof | grep -q "cellularinfo.ini";
+	then
+		echo "imei=$imei" > /etc/cellularinfo.ini
+		echo "imsi=$imsi" >> /etc/cellularinfo.ini
+		echo "btsn=$btsn" >> /etc/cellularinfo.ini
+		echo "oprn=$oprn" >> /etc/cellularinfo.ini
+		echo "tech=$tech" >> /etc/cellularinfo.ini
+		echo "band=$band" >> /etc/cellularinfo.ini
+		if [[ ${#rssi} -ne 0 ]]
+		then
+			echo "rssi=$rssi" >> /etc/cellularinfo.ini
+		fi
+	fi
+else
+	if ! lsof | grep -q "cellularinfo.ini";
+	then
+		imeiOld="$(cat /etc/cellularinfo.ini | grep imei | cut -d '=' -f 2)"
+		imsiOld="$(cat /etc/cellularinfo.ini | grep imsi | cut -d '=' -f 2)"
+		btsnOld="$(cat /etc/cellularinfo.ini | grep btsn | cut -d '=' -f 2)"
+		oprnOld="$(cat /etc/cellularinfo.ini | grep oprn | cut -d '=' -f 2)"
+		techOld="$(cat /etc/cellularinfo.ini | grep tech | cut -d '=' -f 2)"
+		bandOld="$(cat /etc/cellularinfo.ini | grep band | cut -d '=' -f 2)"
+		cat /dev/null > /etc/cellularinfo.ini
+		if [[ "$imei" != "NA" ]]
+		then
+			echo "imei=$imei" >> /etc/cellularinfo.ini
+		else
+			echo "imei=$imeiOld" >> /etc/cellularinfo.ini
+		fi
+		if [[ "$imsi" != "NA" ]]
+		then
+			echo "imsi=$imsi" >> /etc/cellularinfo.ini
+		else
+			echo "imsi=$imsiOld" >> /etc/cellularinfo.ini
+		fi
+		if [[ "$btsn" != "NA" ]]
+		then
+			echo "btsn=$btsn" >> /etc/cellularinfo.ini
+		else
+			echo "btsn=$btsnOld" >> /etc/cellularinfo.ini
+		fi
+		if [[ "$oprn" != "NA" ]]
+		then
+			echo "oprn=$oprn" >> /etc/cellularinfo.ini
+		else
+			echo "oprn=$oprnOld" >> /etc/cellularinfo.ini
+		fi
+		if [[ "$tech" != "NA" ]]
+		then
+			echo "tech=$tech" >> /etc/cellularinfo.ini
+		else
+			echo "tech=$techOld" >> /etc/cellularinfo.ini
+		fi
+		if [[ "$band" != "NA" ]]
+		then
+			echo "band=$band" >> /etc/cellularinfo.ini
+		else
+			echo "band=$bandOld" >> /etc/cellularinfo.ini
+		fi
+		if [[ ${#rssi} -ne 0 ]]
+		then
+			echo "rssi=$rssi" >> /etc/cellularinfo.ini
+		fi
+	fi
+fi
